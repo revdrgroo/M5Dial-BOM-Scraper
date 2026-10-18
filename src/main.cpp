@@ -25,6 +25,7 @@
 
 #define FORMAT_LITTLEFS_IF_FAILED true
 #define TRY_FTP_FETCH false
+#define TRY_LOCAL_HTTP_FETCH true
 
 #define DISPLAY_WEATHER_FOR_LINE 40
 #define DISPLAY_REGION_LINE 80
@@ -158,11 +159,18 @@ void setup() {
   Serial.printf("Local IP: %s\n", WiFi.localIP().toString().c_str());
 
 //  fetchXMLFromBomFTP();
- #if TRY_FTP_FETCH
+#if TRY_FTP_FETCH
   parse_ftp_results(bomResults);
 #endif
+#if TRY_LOCAL_HTTP_FETCH
+  LocalBomParse localBomParse(bomResults);
+  localBomParse.fetchXML();
+  localBomParse.parseXML();
+  strlcpy(bomResults.regionName, "Bowral", sizeof(bomResults.regionName));
+#else
   bomParse.parseXML();
   show_ftp_results_simple();
+#endif
 
   // Draw initial boot graphic
   M5Dial.Display.clear();

@@ -2,7 +2,7 @@
 #include <LittleFS.h>
 
 #define FTP_SERVER_ADDRESS "ftp.bom.gov.au"
-#define FTP_SERVER_PORT 21
+#define HTTP_SERVER_PORT 21
 #define FTP_USER_NAME "anonymous"
 #define FTP_USER_PASSWORD ""
 // #define FTP_FILE_PATH "anon/gen/fwo/IDN11060.xml"
@@ -15,7 +15,7 @@ void BomParse::fetchXML() {
 
   Serial.printf("Fetching BOM XML by FTP to LittleFS: %s", LITTLEFS_PATH);
   GFTPClient ftp_client(5);;
-  bool res = ftp_client.open(FTP_SERVER_ADDRESS, FTP_SERVER_PORT, FTP_USER_NAME, FTP_USER_PASSWORD);
+  bool res = ftp_client.open(FTP_SERVER_ADDRESS, HTTP_SERVER_PORT, FTP_USER_NAME, FTP_USER_PASSWORD);
   Serial.printf("Connect result: %s\n", res ? "success" : "failed");
 
   if (res) {
