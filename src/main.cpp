@@ -24,12 +24,22 @@
 #include "WiFi.h"
 
 #define FORMAT_LITTLEFS_IF_FAILED true
+#define TRY_FTP_FETCH false
+
+#define DISPLAY_WEATHER_FOR_LINE 40
+#define DISPLAY_REGION_LINE 80
+#define DISPLAY_PRECIS_LINE 120
+#define DISPLAY_PRECIS_LINE2 140
+#define DISPLAY_PERIOD_NUM_LINE 200
 
 long oldPosition = -999;
-static BomUI ui;
-static BomParseResult httpBomResult;
-#define OUTPUT_BUFFER_SIZE 256
-static char OutputBuffer[OUTPUT_BUFFER_SIZE + 1];
+// static BomUI ui;
+// static BomParseResult httpBomResult;
+static BomParseResult bomResults;
+static BomParse bomParse(bomResults);
+
+// #define OUTPUT_BUFFER_SIZE 256
+// static char OutputBuffer[OUTPUT_BUFFER_SIZE + 1];
 
 void display_file_system_information() {
 
@@ -133,7 +143,7 @@ void setup() {
   // Configure Round Display
   M5Dial.Display.setTextColor(GREEN);
   M5Dial.Display.setTextDatum(middle_center);
-  M5Dial.Display.setTextFont(&fonts::Orbitron_Light_32);
+  M5Dial.Display.setFont(&fonts::Orbitron_Light_24);
   M5Dial.Display.setTextSize(2);
   M5Dial.Display.drawString("Press", M5Dial.Display.width() / 2, M5Dial.Display.height() / 2);
   while (!M5Dial.BtnA.wasPressed()) {
@@ -148,17 +158,18 @@ void setup() {
   Serial.printf("Local IP: %s\n", WiFi.localIP().toString().c_str());
 
 //  fetchXMLFromBomFTP();
-  BomParseResult bomResults;
-  BomParse bomParse(bomResults);
-  //parse_ftp_results(bomResults);
+ #if TRY_FTP_FETCH
+  parse_ftp_results(bomResults);
+#endif
   bomParse.parseXML();
   show_ftp_results_simple();
 
   // Draw initial boot graphic
-  M5Dial.Display.setTextSize(0.4);
-  M5Dial.Display.drawString("Weather", M5Dial.Display.width() / 2, M5Dial.Display.height() / 5);
-  M5Dial.Display.setTextSize(2);
-  M5Dial.Display.drawString(bomResults.regionName, M5Dial.Display.width() / 2, M5Dial.Display.height() / 2);
+  M5Dial.Display.clear();
+  M5Dial.Display.setTextSize(0.6);
+  M5Dial.Display.drawString("Weather for", M5Dial.Display.width() / 2, DISPLAY_WEATHER_FOR_LINE);
+  M5Dial.Display.setTextSize(1);
+  M5Dial.Display.drawString(bomResults.regionName, M5Dial.Display.width() / 2, DISPLAY_REGION_LINE);
   oldPosition = M5Dial.Encoder.read();
 }
 
@@ -169,14 +180,28 @@ void loop() {
   // 1. Read and process Rotary Encoder
   long newPosition = M5Dial.Encoder.read();
   if (newPosition != oldPosition) {
+    int h_center = M5Dial.Display.width() / 2;
     M5Dial.Speaker.tone(4000, 20);  // Quick audible click tick
     M5Dial.Display.clear();
+    M5Dial.Display.setTextColor(GREEN);
+    M5Dial.Display.setTextSize(1);
+    M5Dial.Display.drawString(bomResults.regionName, M5Dial.Display.width() / 2, DISPLAY_REGION_LINE);
 
     oldPosition = newPosition;
-    Serial.println(newPosition);
-
-    // Print position center-screen
-    M5Dial.Display.drawString(String(newPosition), M5Dial.Display.width() / 2, M5Dial.Display.height() / 2);
+    int selector = (newPosition % bomResults.periodCount + bomResults.periodCount) % bomResults.periodCount;
+    Serial.printf("new pos %d, selector %d", newPosition, selector);
+    M5Dial.Display.setTextSize(0.6);
+    M5Dial.Display.setTextColor(BLUE);
+    String precis(String(bomResults.periods[selector].precis));
+    String precis_1 = precis.substring(0, 24);
+    String precis_2 = precis.substring(24);
+    M5Dial.Display.drawString(precis_1, h_center, DISPLAY_PRECIS_LINE);
+    if (precis.length() > 24) {
+      M5Dial.Display.drawString(precis_2, h_center, DISPLAY_PRECIS_LINE2);
+    }
+    M5Dial.Display.setTextSize(1);
+    M5Dial.Display.setTextColor(GREEN);
+    M5Dial.Display.drawString(String(selector), h_center, DISPLAY_PERIOD_NUM_LINE);
   }
 
   // 2. Read Screen/Logo Wake Button Actions

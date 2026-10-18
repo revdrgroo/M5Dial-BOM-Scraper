@@ -35,7 +35,7 @@
                 <element type="forecast_icon_code">11</element>
                 <element type="air_temperature_maximum" units="Celsius">24</element>
                 <text type="forecast">Partly cloudy. Medium chance of showers in the afternoon and early evening. The chance of a thunderstorm in the afternoon and early evening. Light winds.</text>
-                <text type="precis">Shower or two developing.</text>
+                <text type="precis">Heavy shower or two developing.</text>
                 <text type="probability_of_precipitation">60%</text>
                 <text type="fire_danger">No Rating</text>
                 <text type="uv_alert">Sun protection 9:10am to 5:10pm, UV Index predicted to reach 12 [Extreme]</text>
