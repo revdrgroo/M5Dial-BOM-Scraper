@@ -1,4 +1,5 @@
 #include "BomParse.h"
+#include <LittleFS.h>
 
 #define FTP_SERVER_ADDRESS "ftp.bom.gov.au"
 #define FTP_SERVER_PORT 21
@@ -6,24 +7,27 @@
 #define FTP_USER_PASSWORD ""
 // #define FTP_FILE_PATH "anon/gen/fwo/IDN11060.xml"
 #define FTP_FILE_PATH "anon/gen/fwo/IDN11116.xml"
-#define SPIFFS_PATH "/test.xml"
+#define LITTLEFS_PATH "/test.xml"
 
 void BomParse::fetchXML() {
   Serial.printf("Local IP: %s\n", WiFi.localIP().toString().c_str());
   Serial.printf("WIFI Gateway: %s\n", WiFi.gatewayIP().toString().c_str());
 
-  Serial.println("Fetching BOM XML by FTP to SPIFFS: %s");
-  GFTPClient ftp_client;
+  Serial.printf("Fetching BOM XML by FTP to LittleFS: %s", LITTLEFS_PATH);
+  GFTPClient ftp_client(5);;
   bool res = ftp_client.open(FTP_SERVER_ADDRESS, FTP_SERVER_PORT, FTP_USER_NAME, FTP_USER_PASSWORD);
   Serial.printf("Connect result: %s\n", res ? "success" : "failed");
 
   if (res) {
-    Serial.print("Read file to SPIFFS: ");
-    if (ftp_client.read_file(FTP_FILE_PATH, SPIFFS_PATH)) {
+    Serial.print("Read file to LittleFS: ");
+    File saveFile = LittleFS.open(LITTLEFS_PATH, "w", /* create */ true);
+    if (ftp_client.read_file(FTP_FILE_PATH, saveFile)) {
       Serial.println("success");
-    } else {
+    }
+    else {
       Serial.println("failure");
     }
+    saveFile.close();
     ftp_client.close();
   }
 }
@@ -207,21 +211,21 @@ void BomParse::parseXML() {
   this->result.complete = false;
   xml_parser.init(dataBuffer, maxDataLen, callback, this);
   Serial.println("FTP test result:");
-  fs::File spiffs_file = SPIFFS.open(SPIFFS_PATH, "r");
-  if (spiffs_file) {
+  File file = LittleFS.open(LITTLEFS_PATH, "r");
+  if (file) {
     Serial.println("File content:");
     int count = 0;
     int limit = XML_PARSE_LIMIT;
     this->inAreaTag = false;
     this->inTargetRegion = false;
 
-    while (!this->result.complete && count < limit && spiffs_file.available()) {
-      xml_parser.processChar(spiffs_file.read());
+    while (!this->result.complete && count < limit && file.available()) {
+      xml_parser.processChar(file.read());
       count++;
     }
-    spiffs_file.close();
+    file.close();
     Serial.println("End of file reached.");
   } else {
-    Serial.println("Failed to open file in SPIFFS");
+    Serial.println("Failed to open file in LittleFS");
   }
 }

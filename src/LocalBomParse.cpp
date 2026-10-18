@@ -3,7 +3,7 @@
 
 #define HTTP_SERVER_ADDRESS "10.1.1.150"
 #define FTP_SERVER_PORT 8000
-#define SPIFFS_PATH "/local.xml"
+#define LITTLEFS_PATH "/local.xml"
 #define XML_PARSE_LIMIT 50000
 
 #define ROOT_TAG "/week_forecast"
@@ -40,7 +40,7 @@ void LocalBomParse::fetchXML() {
     Serial.println(payload);
 
     // TODO: Save to SPIFFS
-    File file = SPIFFS.open(SPIFFS_PATH, "w");
+    File file = SPIFFS.open(LITTLEFS_PATH, "w");
     if (file) {
       file.print(payload);
       file.close();
@@ -127,7 +127,7 @@ void LocalBomParse::parseXML() {
   this->result.complete = false;
   xml_parser.init(dataBuffer, maxDataLen, LocalBomParse_XML_callback, this);
   Serial.println("HTTP test result:");
-  fs::File spiffs_file = SPIFFS.open(SPIFFS_PATH, "r");
+  fs::File spiffs_file = SPIFFS.open(LITTLEFS_PATH, "r");
   if (spiffs_file) {
     Serial.println("File content:");
     int count = 0;

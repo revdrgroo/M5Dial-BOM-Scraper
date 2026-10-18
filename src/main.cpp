@@ -28,33 +28,18 @@
 long oldPosition = -999;
 static BomUI ui;
 static BomParseResult httpBomResult;
+#define OUTPUT_BUFFER_SIZE 256
+static char OutputBuffer[OUTPUT_BUFFER_SIZE + 1];
 
 void display_file_system_information() {
-  
+
   Serial.println("File system:");
-  if (SPIFFS.begin()) {
-// Display files
-#ifdef ARDUINO_ARCH_ESP32
-    File root_directory = SPIFFS.open("/");
-    File file = root_directory.openNextFile();
-    while (file) {
-      Serial.printf("%s (%d bytes)\n", file.path(), file.size());
-      file = root_directory.openNextFile();
-    }
-#endif
-
-    // Get SPIFFS informations
-    size_t totalKBytes = 0;
-    size_t usedKBytes = 0;
-#ifdef ARDUINO_ARCH_ESP32
-    totalKBytes = SPIFFS.totalBytes() >> 10;
-    usedKBytes = SPIFFS.usedBytes() >> 10;
-#endif
-
-    // Display space used
-    Serial.printf("Total: %d KBytes\n", totalKBytes);
-    Serial.printf("Used: %d KBytes\n", usedKBytes);
-    Serial.printf("Free: %d KBytes\n", totalKBytes - usedKBytes);
+  Serial.printf("LittleFS total bytes %d\n", LittleFS.totalBytes());
+  Serial.printf("LittleFS used bytes %d\n", LittleFS.usedBytes());
+  File file = LittleFS.open(LITTLEFS_FILE_PATH, "r");
+  if (file) {
+    Serial.printf("Found %s", LITTLEFS_FILE_PATH);
+    file.close();
   }
 }
 
@@ -80,15 +65,15 @@ bool connect_wifi() {
 
 void show_ftp_results_simple() {
   Serial.println("FTP test result:");
-  fs::File spiffs_file = SPIFFS.open(SPIFFS_FILE_PATH, "r");
-  if (spiffs_file) {
+  File file = LittleFS.open(LITTLEFS_FILE_PATH, "r");
+  if (file) {
     Serial.println("File content:");
-    while (spiffs_file.available()) {
-      Serial.write(spiffs_file.read());
+    while (file.available()) {
+      Serial.write(file.read());
     }
-    spiffs_file.close();
+    file.close();
   } else {
-    Serial.println("Failed to open file in SPIFFS");
+    Serial.println("Failed to open file in LittleFS");
   }
 }
 
@@ -131,15 +116,19 @@ void parse_http_results(BomParseResult& result) {
 }
 
 void setup() {
-  if (!LittleFS.begin(FORMAT_LITTLEFS_IF_FAILED)) {
-    Serial.println("LittleFS Mount Failed!");
-    return;
-  }
+  bool mountWorked = LittleFS.begin(FORMAT_LITTLEFS_IF_FAILED);
 
   // Initialize configuration
   auto cfg = M5.config();
   // Begin: (config, enableEncoder, enableRFID)
   M5Dial.begin(cfg, true, false);
+
+  if (!mountWorked) {
+    M5Dial.Display.clear();
+    M5Dial.Display.drawString("FS Fail", 120, 120);
+    return;
+  }
+  Serial.begin(115200);
 
   // Configure Round Display
   M5Dial.Display.setTextColor(GREEN);
@@ -151,8 +140,6 @@ void setup() {
     M5Dial.update();
   }
   M5Dial.Speaker.tone(4000, 20);  // Quick audible click tick
-  Serial.begin(115200);
-  show_ftp_results_simple();
   display_file_system_information();
   if (!connect_wifi()) {
     Serial.println("WiFi not connected, cannot start test");
@@ -160,9 +147,12 @@ void setup() {
   }
   Serial.printf("Local IP: %s\n", WiFi.localIP().toString().c_str());
 
+//  fetchXMLFromBomFTP();
   BomParseResult bomResults;
-
-  parse_ftp_results(bomResults);
+  BomParse bomParse(bomResults);
+  //parse_ftp_results(bomResults);
+  bomParse.parseXML();
+  show_ftp_results_simple();
 
   // Draw initial boot graphic
   M5Dial.Display.setTextSize(0.4);

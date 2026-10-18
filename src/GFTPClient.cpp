@@ -38,6 +38,7 @@
   // Open connection
   bool GFTPClient::open(const char* server_address,const uint16_t server_port,const char* user_name,const char* user_password)
   {
+    Serial.printf("GFTPClient: open %s %d %s %s", server_address, server_port, user_name, user_password);
     // Connect to server
     if(m_client.connect(server_address,server_port))
     {
@@ -54,6 +55,8 @@
           return (run_command("PASS ",user_password)==230);
         }
       }
+    } else {
+      Serial.println("GFTPClient: failed to connect");
     }
 
     // Return: error
