@@ -1,3 +1,4 @@
+#ifndef M5Stack
 #ifndef BOM_UI_H
 #define BOM_UI_H
 
@@ -111,4 +112,5 @@ struct BomUI {
     lv_obj_clear_flag(this->fullForecastDismissButton, LV_OBJ_FLAG_HIDDEN);
   }
 };
+#endif
 #endif

@@ -15,9 +15,11 @@
 
 #include "app_hal.h"
 
+// #include <M5Dial.h>
 #include "TinyXML.h"
 #include "WiFi.h"
 
+long oldPosition = -999;
 static BomUI ui;
 static BomParseResult httpBomResult;
 
@@ -121,6 +123,49 @@ void parse_http_results(BomParseResult& result) {
   Serial.println("---\n---\n");
 }
 
+#ifdef M5Stack
+void setup() {
+  // Initialize configuration
+  auto cfg = M5.config();
+
+  // Begin: (config, enableEncoder, enableRFID)
+  M5Dial.begin(cfg, true, false);
+
+  // Configure Round Display
+  M5Dial.Display.setTextColor(GREEN);
+  M5Dial.Display.setTextDatum(middle_center);
+  M5Dial.Display.setTextFont(&fonts::Orbitron_Light_32);
+  M5Dial.Display.setTextSize(2);
+
+  // Draw initial boot graphic
+  M5Dial.Display.drawString("M5Dial", M5Dial.Display.width() / 2, M5Dial.Display.height() / 2);
+}
+
+void loop() {
+  // Update state readings for buttons and peripheral ticks
+  M5Dial.update();
+
+  // 1. Read and process Rotary Encoder
+  long newPosition = M5Dial.Encoder.read();
+  if (newPosition != oldPosition) {
+    M5Dial.Speaker.tone(4000, 20);  // Quick audible click tick
+    M5Dial.Display.clear();
+
+    oldPosition = newPosition;
+    Serial.println(newPosition);
+
+    // Print position center-screen
+    M5Dial.Display.drawString(String(newPosition), M5Dial.Display.width() / 2, M5Dial.Display.height() / 2);
+  }
+
+  // 2. Read Screen/Logo Wake Button Actions
+  if (M5Dial.BtnA.wasPressed()) {
+    M5Dial.Speaker.tone(2000, 100);
+    M5Dial.Encoder.readAndReset();  // Reset encoder count back to 0
+  }
+}
+
+#else
 void setup() {
   Serial.begin(115200);
   show_ftp_results_simple();
@@ -233,3 +278,4 @@ void lv_show_bom_results_table(BomParseResult& result, BomUI& ui) {
     lv_table_set_cell_value_fmt(ui.table, i, 5, "%s", result.periods[i].precipRange);
   }
 }
+#endif
