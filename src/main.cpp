@@ -1,3 +1,10 @@
+#ifndef HSPI_HOST
+#define HSPI_HOST SPI2_HOST
+#endif
+
+#ifndef VSPI_HOST
+#define VSPI_HOST SPI3_HOST
+#endif 
 /**
   ******************************************************************************
   * @file    main.c
@@ -13,17 +20,17 @@
 #include <Arduino.h>
 #include <SPIFFS.h>
 
-#include "app_hal.h"
-
-// #include <M5Dial.h>
 #include "TinyXML.h"
 #include "WiFi.h"
+
+#define FORMAT_LITTLEFS_IF_FAILED true
 
 long oldPosition = -999;
 static BomUI ui;
 static BomParseResult httpBomResult;
 
 void display_file_system_information() {
+  
   Serial.println("File system:");
   if (SPIFFS.begin()) {
 // Display files
@@ -123,11 +130,14 @@ void parse_http_results(BomParseResult& result) {
   Serial.println("---\n---\n");
 }
 
-#ifdef M5Stack
 void setup() {
+  if (!LittleFS.begin(FORMAT_LITTLEFS_IF_FAILED)) {
+    Serial.println("LittleFS Mount Failed!");
+    return;
+  }
+
   // Initialize configuration
   auto cfg = M5.config();
-
   // Begin: (config, enableEncoder, enableRFID)
   M5Dial.begin(cfg, true, false);
 
@@ -136,9 +146,30 @@ void setup() {
   M5Dial.Display.setTextDatum(middle_center);
   M5Dial.Display.setTextFont(&fonts::Orbitron_Light_32);
   M5Dial.Display.setTextSize(2);
+  M5Dial.Display.drawString("Press", M5Dial.Display.width() / 2, M5Dial.Display.height() / 2);
+  while (!M5Dial.BtnA.wasPressed()) {
+    M5Dial.update();
+  }
+  M5Dial.Speaker.tone(4000, 20);  // Quick audible click tick
+  Serial.begin(115200);
+  show_ftp_results_simple();
+  display_file_system_information();
+  if (!connect_wifi()) {
+    Serial.println("WiFi not connected, cannot start test");
+    return;
+  }
+  Serial.printf("Local IP: %s\n", WiFi.localIP().toString().c_str());
+
+  BomParseResult bomResults;
+
+  parse_ftp_results(bomResults);
 
   // Draw initial boot graphic
-  M5Dial.Display.drawString("M5Dial", M5Dial.Display.width() / 2, M5Dial.Display.height() / 2);
+  M5Dial.Display.setTextSize(0.4);
+  M5Dial.Display.drawString("Weather", M5Dial.Display.width() / 2, M5Dial.Display.height() / 5);
+  M5Dial.Display.setTextSize(2);
+  M5Dial.Display.drawString(bomResults.regionName, M5Dial.Display.width() / 2, M5Dial.Display.height() / 2);
+  oldPosition = M5Dial.Encoder.read();
 }
 
 void loop() {
@@ -165,7 +196,7 @@ void loop() {
   }
 }
 
-#else
+#if false
 void setup() {
   Serial.begin(115200);
   show_ftp_results_simple();

@@ -1,11 +1,12 @@
-#ifndef M5Stack
 #ifndef BOM_UI_H
 #define BOM_UI_H
 
+#include <M5Dial.h>
+
 #include "BomParse.h"
-#include "lvgl.h"
 
 struct BomUI {
+#ifndef M5STACK
   // Widgets
   lv_obj_t* loadingLabel;
   lv_obj_t* table;
@@ -111,6 +112,6 @@ struct BomUI {
     lv_obj_clear_flag(this->fullForecastLabel, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(this->fullForecastDismissButton, LV_OBJ_FLAG_HIDDEN);
   }
-};
 #endif
+};
 #endif
