@@ -42,6 +42,9 @@
 #define DISPLAY_PRECIS_LINE2 140
 #define DISPLAY_PERIOD_NUM_LINE 200
 
+#define FORECAST_SPRITE_WIDTH 200
+#define FORECAST_SPRITE_HEIGHT 100
+
 long oldPosition = -999;
 // static BomUI ui;
 // static BomParseResult httpBomResult;
@@ -50,6 +53,8 @@ static BomParse bomParse(bomResults);
 
 // #define OUTPUT_BUFFER_SIZE 256
 // static char OutputBuffer[OUTPUT_BUFFER_SIZE + 1];
+
+LGFX_Sprite* scrollSprite;
 
 void display_file_system_information() {
 
@@ -135,32 +140,27 @@ void parse_http_results(BomParseResult& result) {
   Serial.println("---\n---\n");
 }
 
-void displayPrecis(std::string& precis) {
-  int h_center = M5Dial.Display.width() / 2;
-  int v_pos = 60;
-  int lineLength = 200;
-  int lineHeight = 20;
+void fillForecastSprite(std::string& precis, int verticalOffset) {
   std::stringstream ss(precis);
   std::vector<std::string> words;
   std::string word;
   std::string line;
 
-  M5Dial.Display.clear();
-  M5Dial.Display.setTextColor(GREEN);
-  M5Dial.Display.setFont(&fonts::Orbitron_Light_24);
-  M5Dial.Display.setTextSize(1);
-  M5Dial.Display.drawString(bomResults.regionName, M5Dial.Display.width() / 2, 30);
-  M5Dial.Display.setFont(&fonts::DejaVu12);
-  M5Dial.Display.setTextSize(1);
-  M5Dial.Display.setTextColor(LIGHTGREY);
+  scrollSprite->setFont(&fonts::DejaVu12);
+
   while (ss >> word) {
     words.push_back(word);
   }
 
-  int textWidth = 0;
   line.clear();
+  scrollSprite->clear();
+ 
+  int textWidth = 0;
+  int v_pos = -verticalOffset;
+  int lineLength = FORECAST_SPRITE_WIDTH;
+  int lineHeight = 20;
   int lineCount = 0;
-  int lineLimit = 6;
+  int lineLimit = 10;
   int spaceWidth = M5Dial.Display.textWidth(" ");
   for (const auto& w : words) {
     int nextWidth = M5Dial.Display.textWidth(w.c_str()) + spaceWidth;
@@ -169,7 +169,7 @@ void displayPrecis(std::string& precis) {
       if (lineCount >= lineLimit) {
         line += "...";
       }
-      M5Dial.Display.drawString(line.c_str(), h_center, v_pos);
+      scrollSprite->drawString(line.c_str(), 0, v_pos);
       line = w;
       textWidth = nextWidth;
       v_pos += lineHeight;
@@ -180,13 +180,22 @@ void displayPrecis(std::string& precis) {
       line += " ";
       line += w;
       textWidth += nextWidth;
-      Serial.printf("displayPrecis w=%s line=%s textWidth = %d nextWidth = %d\n", w.c_str(), line.c_str(), textWidth,
-                    nextWidth);
     }
   }
   if (lineCount < lineLimit) {
-    M5Dial.Display.drawString(line.c_str(), h_center, v_pos);
+    scrollSprite->drawString(line.c_str(), 0, v_pos);
   }
+}
+
+void displayPrecis(std::string& precis, int verticalOffset) {
+  M5Dial.Display.setFont(&fonts::DejaVu12);
+  M5Dial.Display.setTextSize(1);
+  M5Dial.Display.setTextColor(LIGHTGREY);
+  //M5Dial.Display.fillRect(0, 60, 240, 120, BLACK);
+
+  fillForecastSprite(precis, verticalOffset);
+  int pushX = (M5Dial.Display.width() - FORECAST_SPRITE_WIDTH) / 2;
+  scrollSprite->pushSprite(pushX, 60);
 }
 
 void setup() {
@@ -199,6 +208,9 @@ void setup() {
 #if ROTATE_DISPLAY_180
   M5Dial.Display.setRotation(2);
 #endif
+
+  scrollSprite = new LGFX_Sprite(&M5Dial.Display);
+  scrollSprite->createSprite(FORECAST_SPRITE_WIDTH, FORECAST_SPRITE_HEIGHT);
 
   if (!mountWorked) {
     M5Dial.Display.clear();
@@ -220,7 +232,7 @@ void setup() {
 #if ROTATE_DISPLAY_180
   M5Dial.Display.fillTriangle(dw / 2 - triSize, 10 + triSize, dw / 2 + triSize, 10 + triSize, dw / 2, 10, GREEN);
 #else
-  M5Dial.Display.fillTriangle(dw / 2 - triSize, 220 - triSize, dw / 2 + triSize, 220 - triSize, dw / 2, 220 , GREEN);
+  M5Dial.Display.fillTriangle(dw / 2 - triSize, 220 - triSize, dw / 2 + triSize, 220 - triSize, dw / 2, 220, GREEN);
 #endif
   while (!M5Dial.BtnA.wasPressed()) {
     M5Dial.update();
@@ -259,32 +271,46 @@ void setup() {
   oldPosition = M5Dial.Encoder.read();
 }
 
+static int oldVerticalOffset = -1;
+static unsigned long scrollStartMillis = 0;
+
 void loop() {
   // Update state readings for buttons and peripheral ticks
   M5Dial.update();
 
   // 1. Read and process Rotary Encoder
   long newPosition = M5Dial.Encoder.read();
+  int selector = (newPosition % bomResults.periodCount + bomResults.periodCount) % bomResults.periodCount;
+
   if (newPosition != oldPosition) {
-
+    Serial.printf("new pos %d, selector %d", newPosition);
+    M5Dial.Display.clear();
     oldPosition = newPosition;
-    int selector = (newPosition % bomResults.periodCount + bomResults.periodCount) % bomResults.periodCount;
-    Serial.printf("new pos %d, selector %d", newPosition, selector);
     M5Dial.Speaker.tone(4000, 20);  // Quick audible click tick
-
-    std::string precis(bomResults.periods[selector].forecast);
-    displayPrecis(precis);
-
-    // M5Dial.Display.setFont(&fonts::Orbitron_Light_24);
+    M5Dial.Display.setTextColor(GREEN);
+    M5Dial.Display.setFont(&fonts::Orbitron_Light_24);
+    M5Dial.Display.setTextSize(1);
+    M5Dial.Display.drawString(bomResults.regionName, M5Dial.Display.width() / 2, 30);
     M5Dial.Display.setFont(&fonts::DejaVu12);
     M5Dial.Display.setTextSize(1);
     M5Dial.Display.setTextColor(GREEN);
     int h_center = M5Dial.Display.width() / 2;
-    String date = String(bomResults.periods[selector].dayOfWeek) + String(" ") + String(bomResults.periods[selector].dateString);
-    Serial.printf("Date string %s", date.c_str());
+    String date =
+        String(bomResults.periods[selector].dayOfWeek) + String(" ") + String(bomResults.periods[selector].dateString);
+    //Serial.printf("Date string %s", date.c_str());
     M5Dial.Display.drawString(date, h_center, DISPLAY_PERIOD_NUM_LINE);
+    scrollStartMillis = millis();
+    oldVerticalOffset = -1;
   }
 
+  int v_ofs = (int)(((millis() - scrollStartMillis) / 150L) % 125L) * 2;
+  // pause for the first 100 lines of scrolling.
+  v_ofs = min(150, max(0, v_ofs - 50));
+  if (oldPosition > 0 && v_ofs != oldVerticalOffset) {
+    oldVerticalOffset = v_ofs;
+    std::string forecast(bomResults.periods[selector].forecast);
+    displayPrecis(forecast, v_ofs);
+  }
   // 2. Read Screen/Logo Wake Button Actions
   if (M5Dial.BtnA.wasPressed()) {
     M5Dial.Speaker.tone(2000, 100);
