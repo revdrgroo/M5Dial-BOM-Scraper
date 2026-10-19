@@ -31,6 +31,7 @@
 #include <vector>
 ///
 
+#define ROTATE_DISPLAY_180 true
 #define FORMAT_LITTLEFS_IF_FAILED true
 #define TRY_FTP_FETCH false
 #define TRY_LOCAL_HTTP_FETCH true
@@ -195,6 +196,9 @@ void setup() {
   auto cfg = M5.config();
   // Begin: (config, enableEncoder, enableRFID)
   M5Dial.begin(cfg, true, false);
+#if ROTATE_DISPLAY_180
+  M5Dial.Display.setRotation(2);
+#endif
 
   if (!mountWorked) {
     M5Dial.Display.clear();
@@ -206,10 +210,18 @@ void setup() {
   // Configure Round Display
   M5Dial.Display.setTextColor(GREEN);
   M5Dial.Display.setTextDatum(middle_center);
+  int dw = M5Dial.Display.width();
+  int dh = M5Dial.Display.height();
   // M5Dial.Display.setFont(&fonts::Orbitron_Light_24);
   M5Dial.Display.setFont(&fonts::Orbitron_Light_24);
   M5Dial.Display.setTextSize(2);
-  M5Dial.Display.drawString("Press", M5Dial.Display.width() / 2, M5Dial.Display.height() / 2);
+  M5Dial.Display.drawString("Press", dw / 2, dh / 2);
+  int triSize = 30;
+#if ROTATE_DISPLAY_180
+  M5Dial.Display.fillTriangle(dw / 2 - triSize, 10 + triSize, dw / 2 + triSize, 10 + triSize, dw / 2, 10, GREEN);
+#else
+  M5Dial.Display.fillTriangle(dw / 2 - triSize, 220 - triSize, dw / 2 + triSize, 220 - triSize, dw / 2, 220 , GREEN);
+#endif
   while (!M5Dial.BtnA.wasPressed()) {
     M5Dial.update();
   }
