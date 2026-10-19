@@ -4,7 +4,7 @@
 
 #ifndef VSPI_HOST
 #define VSPI_HOST SPI3_HOST
-#endif 
+#endif
 /**
   ******************************************************************************
   * @file    main.c
@@ -14,6 +14,7 @@
   * @brief   Default main function.
   ******************************************************************************
 */
+
 #include "main.h"
 #include "Credentials.h"
 
@@ -22,6 +23,13 @@
 
 #include "TinyXML.h"
 #include "WiFi.h"
+
+///
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+///
 
 #define FORMAT_LITTLEFS_IF_FAILED true
 #define TRY_FTP_FETCH false
@@ -126,6 +134,60 @@ void parse_http_results(BomParseResult& result) {
   Serial.println("---\n---\n");
 }
 
+void displayPrecis(std::string& precis) {
+  int h_center = M5Dial.Display.width() / 2;
+  int v_pos = 60;
+  int lineLength = 200;
+  int lineHeight = 20;
+  std::stringstream ss(precis);
+  std::vector<std::string> words;
+  std::string word;
+  std::string line;
+
+  M5Dial.Display.clear();
+  M5Dial.Display.setTextColor(GREEN);
+  M5Dial.Display.setFont(&fonts::Orbitron_Light_24);
+  M5Dial.Display.setTextSize(1);
+  M5Dial.Display.drawString(bomResults.regionName, M5Dial.Display.width() / 2, 30);
+  M5Dial.Display.setFont(&fonts::DejaVu12);
+  M5Dial.Display.setTextSize(1);
+  M5Dial.Display.setTextColor(LIGHTGREY);
+  while (ss >> word) {
+    words.push_back(word);
+  }
+
+  int textWidth = 0;
+  line.clear();
+  int lineCount = 0;
+  int lineLimit = 6;
+  int spaceWidth = M5Dial.Display.textWidth(" ");
+  for (const auto& w : words) {
+    int nextWidth = M5Dial.Display.textWidth(w.c_str()) + spaceWidth;
+    if (textWidth + nextWidth > lineLength) {
+      lineCount++;
+      if (lineCount >= lineLimit) {
+        line += "...";
+      }
+      M5Dial.Display.drawString(line.c_str(), h_center, v_pos);
+      line = w;
+      textWidth = nextWidth;
+      v_pos += lineHeight;
+      if (lineCount >= lineLimit) {
+        break;
+      }
+    } else {
+      line += " ";
+      line += w;
+      textWidth += nextWidth;
+      Serial.printf("displayPrecis w=%s line=%s textWidth = %d nextWidth = %d\n", w.c_str(), line.c_str(), textWidth,
+                    nextWidth);
+    }
+  }
+  if (lineCount < lineLimit) {
+    M5Dial.Display.drawString(line.c_str(), h_center, v_pos);
+  }
+}
+
 void setup() {
   bool mountWorked = LittleFS.begin(FORMAT_LITTLEFS_IF_FAILED);
 
@@ -144,6 +206,7 @@ void setup() {
   // Configure Round Display
   M5Dial.Display.setTextColor(GREEN);
   M5Dial.Display.setTextDatum(middle_center);
+  // M5Dial.Display.setFont(&fonts::Orbitron_Light_24);
   M5Dial.Display.setFont(&fonts::Orbitron_Light_24);
   M5Dial.Display.setTextSize(2);
   M5Dial.Display.drawString("Press", M5Dial.Display.width() / 2, M5Dial.Display.height() / 2);
@@ -178,6 +241,9 @@ void setup() {
   M5Dial.Display.drawString("Weather for", M5Dial.Display.width() / 2, DISPLAY_WEATHER_FOR_LINE);
   M5Dial.Display.setTextSize(1);
   M5Dial.Display.drawString(bomResults.regionName, M5Dial.Display.width() / 2, DISPLAY_REGION_LINE);
+  M5Dial.Display.setTextSize(0.6);
+  M5Dial.Display.setTextColor(SKYBLUE);
+  M5Dial.Display.drawString("Rotate", M5Dial.Display.width() / 2, DISPLAY_REGION_LINE + 25);
   oldPosition = M5Dial.Encoder.read();
 }
 
@@ -188,28 +254,23 @@ void loop() {
   // 1. Read and process Rotary Encoder
   long newPosition = M5Dial.Encoder.read();
   if (newPosition != oldPosition) {
-    int h_center = M5Dial.Display.width() / 2;
-    M5Dial.Speaker.tone(4000, 20);  // Quick audible click tick
-    M5Dial.Display.clear();
-    M5Dial.Display.setTextColor(GREEN);
-    M5Dial.Display.setTextSize(1);
-    M5Dial.Display.drawString(bomResults.regionName, M5Dial.Display.width() / 2, DISPLAY_REGION_LINE);
 
     oldPosition = newPosition;
     int selector = (newPosition % bomResults.periodCount + bomResults.periodCount) % bomResults.periodCount;
     Serial.printf("new pos %d, selector %d", newPosition, selector);
-    M5Dial.Display.setTextSize(0.6);
-    M5Dial.Display.setTextColor(BLUE);
-    String precis(String(bomResults.periods[selector].precis));
-    String precis_1 = precis.substring(0, 24);
-    String precis_2 = precis.substring(24);
-    M5Dial.Display.drawString(precis_1, h_center, DISPLAY_PRECIS_LINE);
-    if (precis.length() > 24) {
-      M5Dial.Display.drawString(precis_2, h_center, DISPLAY_PRECIS_LINE2);
-    }
+    M5Dial.Speaker.tone(4000, 20);  // Quick audible click tick
+
+    std::string precis(bomResults.periods[selector].forecast);
+    displayPrecis(precis);
+
+    // M5Dial.Display.setFont(&fonts::Orbitron_Light_24);
+    M5Dial.Display.setFont(&fonts::DejaVu12);
     M5Dial.Display.setTextSize(1);
     M5Dial.Display.setTextColor(GREEN);
-    M5Dial.Display.drawString(String(selector), h_center, DISPLAY_PERIOD_NUM_LINE);
+    int h_center = M5Dial.Display.width() / 2;
+    String date = String(bomResults.periods[selector].dayOfWeek) + String(" ") + String(bomResults.periods[selector].dateString);
+    Serial.printf("Date string %s", date.c_str());
+    M5Dial.Display.drawString(date, h_center, DISPLAY_PERIOD_NUM_LINE);
   }
 
   // 2. Read Screen/Logo Wake Button Actions

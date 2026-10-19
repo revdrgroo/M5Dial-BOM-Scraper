@@ -1,0 +1,66 @@
+<week_forecast>
+    <timecode>Mon Oct 19 00:53:11 2026</timecode>
+    <forecast_period index="0">
+        <forecast_icon_code>3</forecast_icon_code>
+        <air_temperature_maximum>20</air_temperature_maximum>
+        <forecast>Partly cloudy. Slight chance of a shower, becoming less likely in the late afternoon and evening. Winds northerly 15 to 20 km/h tending northeasterly in the middle of the day then becoming light in the late evening.</forecast>
+        <precis>Partly cloudy.</precis>
+        <probability_of_precipitation>30%</probability_of_precipitation>
+        <fire_danger>Moderate</fire_danger>
+        <uv_alert>Sun protection 9:10am to 4:10pm, UV Index predicted to reach 8 [Very High]</uv_alert>
+    </forecast_period>
+    <forecast_period index="1">
+        <forecast_icon_code>3</forecast_icon_code>
+        <precipitation_range>0 to 1 mm</precipitation_range>
+        <air_temperature_minimum>9</air_temperature_minimum>
+        <air_temperature_maximum>21</air_temperature_maximum>
+        <forecast>Partly cloudy. Slight chance of a shower in the afternoon and early evening. Light winds becoming northerly 15 to 20 km/h in the morning then tending northeasterly in the middle of the day.</forecast>
+        <precis>Partly cloudy.</precis>
+        <probability_of_precipitation>30%</probability_of_precipitation>
+    </forecast_period>
+    <forecast_period index="2">
+        <forecast_icon_code>3</forecast_icon_code>
+        <precipitation_range>0 to 1 mm</precipitation_range>
+        <air_temperature_minimum>9</air_temperature_minimum>
+        <air_temperature_maximum>22</air_temperature_maximum>
+        <forecast>Partly cloudy. The chance of morning fog. Slight chance of a shower, most likely in the afternoon. The chance of a thunderstorm in the afternoon. Light winds becoming northeasterly 15 to 20 km/h during the afternoon then becoming light during the evening.</forecast>
+        <precis>Partly cloudy.</precis>
+        <probability_of_precipitation>30%</probability_of_precipitation>
+    </forecast_period>
+    <forecast_period index="3">
+        <forecast_icon_code>11</forecast_icon_code>
+        <precipitation_range>0 to 6 mm</precipitation_range>
+        <air_temperature_minimum>11</air_temperature_minimum>
+        <air_temperature_maximum>20</air_temperature_maximum>
+        <forecast>Partly cloudy. High chance of showers, most likely in the morning and afternoon. Light winds becoming northeasterly 15 to 25 km/h during the morning.</forecast>
+        <precis>Shower or two.</precis>
+        <probability_of_precipitation>70%</probability_of_precipitation>
+    </forecast_period>
+    <forecast_period index="4">
+        <forecast_icon_code>17</forecast_icon_code>
+        <precipitation_range>0 to 1 mm</precipitation_range>
+        <air_temperature_minimum>13</air_temperature_minimum>
+        <air_temperature_maximum>23</air_temperature_maximum>
+        <forecast>Cloudy. Medium chance of showers. Winds north to northeasterly 15 to 20 km/h.</forecast>
+        <precis>Possible shower.</precis>
+        <probability_of_precipitation>40%</probability_of_precipitation>
+    </forecast_period>
+    <forecast_period index="5">
+        <forecast_icon_code>11</forecast_icon_code>
+        <precipitation_range>0 to 3 mm</precipitation_range>
+        <air_temperature_minimum>13</air_temperature_minimum>
+        <air_temperature_maximum>26</air_temperature_maximum>
+        <forecast>Partly cloudy. Medium chance of showers. Light winds becoming northwest to northeasterly 15 to 20 km/h during the morning.</forecast>
+        <precis>Shower or two.</precis>
+        <probability_of_precipitation>50%</probability_of_precipitation>
+    </forecast_period>
+    <forecast_period index="6">
+        <forecast_icon_code>11</forecast_icon_code>
+        <precipitation_range>2 to 20 mm</precipitation_range>
+        <air_temperature_minimum>14</air_temperature_minimum>
+        <air_temperature_maximum>25</air_temperature_maximum>
+        <forecast>Partly cloudy. Very high chance of showers. The chance of a thunderstorm. Light winds becoming west to northwesterly 15 to 25 km/h during the morning.</forecast>
+        <precis>Showers increasing.</precis>
+        <probability_of_precipitation>90%</probability_of_precipitation>
+    </forecast_period>
+</week_forecast>

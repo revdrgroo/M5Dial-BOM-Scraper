@@ -14,11 +14,16 @@ struct BomParsePeriod {
   char precis[32];
   char precipProbability[8];
   char precipRange[16];
+  char dayOfWeek[16];
+  char dateString[16];
 
   BomParsePeriod() : tempMin(0), tempMax(0) {
+    forecast[0] = '\0';
     precis[0] = '\0';
     precipProbability[0] = '\0';
     precipRange[0] = '\0';
+    dayOfWeek[0] = '\0';
+    dateString[0] = '\0';
   }
 };
 

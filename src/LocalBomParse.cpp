@@ -20,6 +20,8 @@
 #define PRECIPITATION_RANGE_ATTR FORECAST_PERIOD_TAG"precipitation_range"
 #define UV_ALERT_TAG FORECAST_PERIOD_TAG"/uv_alert"
 #define FIRE_DANGER_TAG FORECAST_PERIOD_TAG"/fire_danger"
+#define DATE_STRING_TAG FORECAST_PERIOD_TAG"/date-string"
+#define DAY_OF_WEEK_TAG FORECAST_PERIOD_TAG"/day-of-week-short"
 
 #define COMPARE(field, value) (((field##Len == (sizeof(value) - 1)) && (strncasecmp(field, value, field##Len) == 0)))
 
@@ -29,8 +31,11 @@ void LocalBomParse::fetchXML() {
 
   String serverPath = String("http://") + HTTP_SERVER_ADDRESS + ":" + String(HTTP_SERVER_PORT);
   HTTPClient http;
+  String request = String("/forecast?region=bowral&refresh=false");
 
-  http.begin(serverPath.c_str());
+  Serial.printf("request >>>%s<<<", request.c_str());
+  // http.begin(request.c_str());
+  http.begin(String(HTTP_SERVER_ADDRESS), HTTP_SERVER_PORT, request);
 
   int httpResponseCode = http.GET();
 
@@ -86,28 +91,29 @@ static void LocalBomParse_XML_callback(uint8_t status, char* tagName, uint16_t t
     }
   }
 
+  Serial.printf("LocalBomParse XML Callback %s\n", tagName);
   if ((status == STATUS_TAG_TEXT)) {
     if (COMPARE(tagName, TIMECODE_TAG)) {
       Serial.printf("Timecode: %.*s\n", textLen, text);
     }
     if (COMPARE(tagName, LONGFORECAST_TAG)) {
       Serial.printf("Forecast: %.*s\n", textLen, text);
-      strncpy(bp->result.periods[bp->periodIndex].forecast, text,
-              sizeof(bp->result.periods[bp->periodIndex].forecast) - 1);
+      strlcpy(bp->result.periods[bp->periodIndex].forecast, text,
+              sizeof(bp->result.periods[bp->periodIndex].forecast));
     }
     if (COMPARE(tagName, PRECIS_TAG)) {
       Serial.printf("Precis: %.*s\n", textLen, text);
-      strncpy(bp->result.periods[bp->periodIndex].precis, text, sizeof(bp->result.periods[bp->periodIndex].precis) - 1);
+      strlcpy(bp->result.periods[bp->periodIndex].precis, text, sizeof(bp->result.periods[bp->periodIndex].precis) - 1);
     }
     if (COMPARE(tagName, PRECIP_PROBABILITY_TAG)) {
       Serial.printf("Probability of precipitation: %.*s\n", textLen, text);
-      strncpy(bp->result.periods[bp->periodIndex].precipProbability, text,
-              sizeof(bp->result.periods[bp->periodIndex].precipProbability) - 1);
+      strlcpy(bp->result.periods[bp->periodIndex].precipProbability, text,
+              sizeof(bp->result.periods[bp->periodIndex].precipProbability));
     }
     if (COMPARE(tagName, PRECIPITATION_RANGE_TAG)) {
       Serial.printf("Precipitation range: %.*s\n", textLen, text);
-      strncpy(bp->result.periods[bp->periodIndex].precipRange, text,
-              sizeof(bp->result.periods[bp->periodIndex].precipRange) - 1);
+      strlcpy(bp->result.periods[bp->periodIndex].precipRange, text,
+              sizeof(bp->result.periods[bp->periodIndex].precipRange));
     }
     if (COMPARE(tagName, TEMPERATURE_MIN_TAG)) {
       Serial.printf("Min temperature: %.*s\n", textLen, text);
@@ -116,6 +122,14 @@ static void LocalBomParse_XML_callback(uint8_t status, char* tagName, uint16_t t
     if (COMPARE(tagName, TEMPERATURE_MAX_TAG)) {
       Serial.printf("Max temperature: %.*s\n", textLen, text);
       bp->result.periods[bp->periodIndex].tempMax = atoi(text);
+    }
+    if (COMPARE(tagName, DATE_STRING_TAG)) {
+      Serial.printf("Max date string: %.*s\n", textLen, text);
+      strlcpy(bp->result.periods[bp->periodIndex].dateString, text, sizeof(bp->result.periods[bp->periodIndex].dateString));
+    }
+    if (COMPARE(tagName, DAY_OF_WEEK_TAG)) {
+      Serial.printf("Max day of week: %.*s\n", textLen, text);
+      strlcpy(bp->result.periods[bp->periodIndex].dayOfWeek, text, sizeof(bp->result.periods[bp->periodIndex].dayOfWeek));
     }
   }
 }
@@ -127,7 +141,7 @@ void LocalBomParse::parseXML() {
 
   this->result.complete = false;
   xml_parser.init(dataBuffer, maxDataLen, LocalBomParse_XML_callback, this);
-  Serial.println("HTTP test result:");
+  Serial.println("local parseXML result:");
   fs::File littlefs_file = LittleFS.open(LITTLEFS_PATH, "r");
   if (littlefs_file) {
     Serial.println("File content:");
