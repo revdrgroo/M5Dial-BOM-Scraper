@@ -96,40 +96,42 @@ static void LocalBomParse_XML_callback(uint8_t status, char* tagName, uint16_t t
     if (COMPARE(tagName, TIMECODE_TAG)) {
       Serial.printf("Timecode: %.*s\n", textLen, text);
     }
+    BomParsePeriod &period = bp->result.periods[bp->periodIndex];
+   
     if (COMPARE(tagName, LONGFORECAST_TAG)) {
       Serial.printf("Forecast: %.*s\n", textLen, text);
-      strlcpy(bp->result.periods[bp->periodIndex].forecast, text,
-              sizeof(bp->result.periods[bp->periodIndex].forecast));
+      strlcpy(period.forecast, text,
+              sizeof(period.forecast));
     }
     if (COMPARE(tagName, PRECIS_TAG)) {
       Serial.printf("Precis: %.*s\n", textLen, text);
-      strlcpy(bp->result.periods[bp->periodIndex].precis, text, sizeof(bp->result.periods[bp->periodIndex].precis) - 1);
+      strlcpy(period.precis, text, sizeof(period.precis) - 1);
     }
     if (COMPARE(tagName, PRECIP_PROBABILITY_TAG)) {
       Serial.printf("Probability of precipitation: %.*s\n", textLen, text);
-      strlcpy(bp->result.periods[bp->periodIndex].precipProbability, text,
-              sizeof(bp->result.periods[bp->periodIndex].precipProbability));
+      strlcpy(period.precipProbability, text,
+              sizeof(period.precipProbability));
     }
     if (COMPARE(tagName, PRECIPITATION_RANGE_TAG)) {
       Serial.printf("Precipitation range: %.*s\n", textLen, text);
-      strlcpy(bp->result.periods[bp->periodIndex].precipRange, text,
-              sizeof(bp->result.periods[bp->periodIndex].precipRange));
+      strlcpy(period.precipRange, text,
+              sizeof(period.precipRange));
     }
     if (COMPARE(tagName, TEMPERATURE_MIN_TAG)) {
       Serial.printf("Min temperature: %.*s\n", textLen, text);
-      bp->result.periods[bp->periodIndex].tempMin = atoi(text);
+      period.tempMin = atoi(text);
     }
     if (COMPARE(tagName, TEMPERATURE_MAX_TAG)) {
       Serial.printf("Max temperature: %.*s\n", textLen, text);
-      bp->result.periods[bp->periodIndex].tempMax = atoi(text);
+      period.tempMax = atoi(text);
     }
     if (COMPARE(tagName, DATE_STRING_TAG)) {
       Serial.printf("Max date string: %.*s\n", textLen, text);
-      strlcpy(bp->result.periods[bp->periodIndex].dateString, text, sizeof(bp->result.periods[bp->periodIndex].dateString));
+      strlcpy(period.dateString, text, sizeof(period.dateString));
     }
     if (COMPARE(tagName, DAY_OF_WEEK_TAG)) {
       Serial.printf("Max day of week: %.*s\n", textLen, text);
-      strlcpy(bp->result.periods[bp->periodIndex].dayOfWeek, text, sizeof(bp->result.periods[bp->periodIndex].dayOfWeek));
+      strlcpy(period.dayOfWeek, text, sizeof(period.dayOfWeek));
     }
   }
 }
