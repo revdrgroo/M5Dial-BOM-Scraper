@@ -24,12 +24,12 @@
 #include "TinyXML.h"
 #include "WiFi.h"
 
-///
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
-///
+
+#include "AutoScrollText.h"
 
 #define ROTATE_DISPLAY_180 true
 #define FORMAT_LITTLEFS_IF_FAILED true
@@ -50,6 +50,7 @@ long oldPosition = -999;
 // static BomParseResult httpBomResult;
 static BomParseResult bomResults;
 static BomParse bomParse(bomResults);
+static AutoScrollText forecastScroll;
 
 // #define OUTPUT_BUFFER_SIZE 256
 // static char OutputBuffer[OUTPUT_BUFFER_SIZE + 1];
@@ -140,64 +141,6 @@ void parse_http_results(BomParseResult& result) {
   Serial.println("---\n---\n");
 }
 
-void fillForecastSprite(std::string& precis, int verticalOffset) {
-  std::stringstream ss(precis);
-  std::vector<std::string> words;
-  std::string word;
-  std::string line;
-
-  scrollSprite->setFont(&fonts::DejaVu12);
-
-  while (ss >> word) {
-    words.push_back(word);
-  }
-
-  line.clear();
-  scrollSprite->clear();
- 
-  int textWidth = 0;
-  int v_pos = -verticalOffset;
-  int lineLength = FORECAST_SPRITE_WIDTH;
-  int lineHeight = 20;
-  int lineCount = 0;
-  int lineLimit = 10;
-  int spaceWidth = M5Dial.Display.textWidth(" ");
-  for (const auto& w : words) {
-    int nextWidth = M5Dial.Display.textWidth(w.c_str()) + spaceWidth;
-    if (textWidth + nextWidth > lineLength) {
-      lineCount++;
-      if (lineCount >= lineLimit) {
-        line += "...";
-      }
-      scrollSprite->drawString(line.c_str(), 0, v_pos);
-      line = w;
-      textWidth = nextWidth;
-      v_pos += lineHeight;
-      if (lineCount >= lineLimit) {
-        break;
-      }
-    } else {
-      line += " ";
-      line += w;
-      textWidth += nextWidth;
-    }
-  }
-  if (lineCount < lineLimit) {
-    scrollSprite->drawString(line.c_str(), 0, v_pos);
-  }
-}
-
-void displayPrecis(std::string& precis, int verticalOffset) {
-  M5Dial.Display.setFont(&fonts::DejaVu12);
-  M5Dial.Display.setTextSize(1);
-  M5Dial.Display.setTextColor(LIGHTGREY);
-  //M5Dial.Display.fillRect(0, 60, 240, 120, BLACK);
-
-  fillForecastSprite(precis, verticalOffset);
-  int pushX = (M5Dial.Display.width() - FORECAST_SPRITE_WIDTH) / 2;
-  scrollSprite->pushSprite(pushX, 60);
-}
-
 void setup() {
   bool mountWorked = LittleFS.begin(FORMAT_LITTLEFS_IF_FAILED);
 
@@ -209,8 +152,7 @@ void setup() {
   M5Dial.Display.setRotation(2);
 #endif
 
-  scrollSprite = new LGFX_Sprite(&M5Dial.Display);
-  scrollSprite->createSprite(FORECAST_SPRITE_WIDTH, FORECAST_SPRITE_HEIGHT);
+  forecastScroll.Init();
 
   if (!mountWorked) {
     M5Dial.Display.clear();
@@ -299,18 +241,11 @@ void loop() {
         String(bomResults.periods[selector].dayOfWeek) + String(" ") + String(bomResults.periods[selector].dateString);
     //Serial.printf("Date string %s", date.c_str());
     M5Dial.Display.drawString(date, h_center, DISPLAY_PERIOD_NUM_LINE);
-    scrollStartMillis = millis();
-    oldVerticalOffset = -1;
+    forecastScroll.UpdateText(String(bomResults.periods[selector].forecast));
+    forecastScroll.StartScroll();
   }
 
-  int v_ofs = (int)(((millis() - scrollStartMillis) / 150L) % 125L) * 2;
-  // pause for the first 100 lines of scrolling.
-  v_ofs = min(150, max(0, v_ofs - 50));
-  if (oldPosition > 0 && v_ofs != oldVerticalOffset) {
-    oldVerticalOffset = v_ofs;
-    std::string forecast(bomResults.periods[selector].forecast);
-    displayPrecis(forecast, v_ofs);
-  }
+  forecastScroll.Update();
   // 2. Read Screen/Logo Wake Button Actions
   if (M5Dial.BtnA.wasPressed()) {
     M5Dial.Speaker.tone(2000, 100);
