@@ -19,6 +19,7 @@ class AutoScrollText {
   int preScrollDelayMs = 2000;
   int postScrollDelayMs = 2000;
   int maxScroll = 120;
+  int currentMaxScroll = maxScroll;
   int scrollStep = 2;
   int scrollStepTimeMs = 150;
   bool scrolling = false;
@@ -47,13 +48,13 @@ class AutoScrollText {
       return;
     }
     int time = (int)(millis() - scrollStartMillis);
-    int scrollTimeMs = (maxScroll / scrollStep * scrollStepTimeMs);
+    int scrollTimeMs = (currentMaxScroll / scrollStep * scrollStepTimeMs);
     if (time < preScrollDelayMs) {
       scrollVerticalOffset = 0;
     } else {
       time -= preScrollDelayMs;
       int scrollCandidate = (time / scrollStepTimeMs) * scrollStep;
-      scrollVerticalOffset = min(maxScroll, max(0, scrollCandidate));
+      scrollVerticalOffset = min(currentMaxScroll, max(0, scrollCandidate));
     }
     if (scrollVerticalOffset != oldVerticalOffset) {
       oldVerticalOffset = scrollVerticalOffset;
@@ -105,6 +106,7 @@ class AutoScrollText {
       }
     }
     scrollSprite->drawString(line.c_str(), 0, v_pos);
+    currentMaxScroll = v_pos + lineHeight;
   }
 
   void DisplaySprite() {
