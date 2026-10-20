@@ -30,6 +30,8 @@
 #include <vector>
 
 #include "AutoScrollText.h"
+#include "RegionSelector.h"
+#include "WeatherDisplay.h"
 
 #define ROTATE_DISPLAY_180 true
 #define FORMAT_LITTLEFS_IF_FAILED true
@@ -37,10 +39,6 @@
 #define TRY_LOCAL_HTTP_FETCH true
 
 #define DISPLAY_WEATHER_FOR_LINE 40
-#define DISPLAY_REGION_LINE 80
-#define DISPLAY_PRECIS_LINE 120
-#define DISPLAY_PRECIS_LINE2 140
-#define DISPLAY_PERIOD_NUM_LINE 200
 
 #define FORECAST_SPRITE_WIDTH 200
 #define FORECAST_SPRITE_HEIGHT 100
@@ -50,15 +48,20 @@ long oldPosition = -999;
 // static BomParseResult httpBomResult;
 static BomParseResult bomResults;
 static BomParse bomParse(bomResults);
-static AutoScrollText forecastScroll;
+// static AutoScrollText forecastScroll;
 
 // #define OUTPUT_BUFFER_SIZE 256
 // static char OutputBuffer[OUTPUT_BUFFER_SIZE + 1];
 
 LGFX_Sprite* scrollSprite;
 
-void display_file_system_information() {
+enum class AppState { REGION_SELECTION, WEATHER_DISPLAY };
+static AppState currentState = AppState::REGION_SELECTION;
+static String selectedRegion = String("");
+static RegionSelector regionSelector;
+static WeatherDisplay weatherDisplay(bomResults);
 
+void display_file_system_information() {
   Serial.println("File system:");
   Serial.printf("LittleFS total bytes %d\n", LittleFS.totalBytes());
   Serial.printf("LittleFS used bytes %d\n", LittleFS.usedBytes());
@@ -114,7 +117,8 @@ void fetchXMLFromBomLocal() {
   BomParseResult result;
   LocalBomParse bom(result);
 
-  bom.fetchXML();
+  String region("bowral");
+  bom.fetchXML(region);
 }
 
 void parse_ftp_results(BomParseResult& result) {
@@ -141,32 +145,11 @@ void parse_http_results(BomParseResult& result) {
   Serial.println("---\n---\n");
 }
 
-void setup() {
-  bool mountWorked = LittleFS.begin(FORMAT_LITTLEFS_IF_FAILED);
-
-  // Initialize configuration
-  auto cfg = M5.config();
-  // Begin: (config, enableEncoder, enableRFID)
-  M5Dial.begin(cfg, true, false);
-#if ROTATE_DISPLAY_180
-  M5Dial.Display.setRotation(2);
-#endif
-
-  forecastScroll.Init();
-
-  if (!mountWorked) {
-    M5Dial.Display.clear();
-    M5Dial.Display.drawString("FS Fail", 120, 120);
-    return;
-  }
-  Serial.begin(115200);
-
-  // Configure Round Display
+void showStartScreen() {
   M5Dial.Display.setTextColor(GREEN);
   M5Dial.Display.setTextDatum(middle_center);
   int dw = M5Dial.Display.width();
   int dh = M5Dial.Display.height();
-  // M5Dial.Display.setFont(&fonts::Orbitron_Light_24);
   M5Dial.Display.setFont(&fonts::Orbitron_Light_24);
   M5Dial.Display.setTextSize(2);
   M5Dial.Display.drawString("Press", dw / 2, dh / 2);
@@ -180,6 +163,27 @@ void setup() {
     M5Dial.update();
   }
   M5Dial.Speaker.tone(4000, 20);  // Quick audible click tick
+}
+
+void setup() {
+  bool mountWorked = LittleFS.begin(FORMAT_LITTLEFS_IF_FAILED);
+
+  // Initialize configuration
+  auto cfg = M5.config();
+  // Begin: (config, enableEncoder, enableRFID)
+  M5Dial.begin(cfg, true, false);
+#if ROTATE_DISPLAY_180
+  M5Dial.Display.setRotation(2);
+#endif
+
+  if (!mountWorked) {
+    M5Dial.Display.clear();
+    M5Dial.Display.drawString("FS Fail", 120, 120);
+    return;
+  }
+  Serial.begin(115200);
+
+  showStartScreen();
   display_file_system_information();
   if (!connect_wifi()) {
     Serial.println("WiFi not connected, cannot start test");
@@ -187,6 +191,7 @@ void setup() {
   }
   Serial.printf("Local IP: %s\n", WiFi.localIP().toString().c_str());
 
+#if false
 //  fetchXMLFromBomFTP();
 #if TRY_FTP_FETCH
   parse_ftp_results(bomResults);
@@ -200,56 +205,32 @@ void setup() {
   bomParse.parseXML();
   show_ftp_results_simple();
 #endif
+#endif
 
-  // Draw initial boot graphic
-  M5Dial.Display.clear();
-  M5Dial.Display.setTextSize(0.6);
-  M5Dial.Display.drawString("Weather for", M5Dial.Display.width() / 2, DISPLAY_WEATHER_FOR_LINE);
-  M5Dial.Display.setTextSize(1);
-  M5Dial.Display.drawString(bomResults.regionName, M5Dial.Display.width() / 2, DISPLAY_REGION_LINE);
-  M5Dial.Display.setTextSize(0.6);
-  M5Dial.Display.setTextColor(SKYBLUE);
-  M5Dial.Display.drawString("Rotate", M5Dial.Display.width() / 2, DISPLAY_REGION_LINE + 25);
-  oldPosition = M5Dial.Encoder.read();
+  regionSelector.Init();
+  weatherDisplay.Init();
 }
 
-static int oldVerticalOffset = -1;
-static unsigned long scrollStartMillis = 0;
-
 void loop() {
-  // Update state readings for buttons and peripheral ticks
-  M5Dial.update();
-
-  // 1. Read and process Rotary Encoder
-  long newPosition = M5Dial.Encoder.read();
-  int selector = (newPosition % bomResults.periodCount + bomResults.periodCount) % bomResults.periodCount;
-
-  if (newPosition != oldPosition) {
-    Serial.printf("new pos %d, selector %d", newPosition);
-    M5Dial.Display.clear();
-    oldPosition = newPosition;
-    M5Dial.Speaker.tone(4000, 20);  // Quick audible click tick
-    M5Dial.Display.setTextColor(GREEN);
-    M5Dial.Display.setFont(&fonts::Orbitron_Light_24);
-    M5Dial.Display.setTextSize(1);
-    M5Dial.Display.drawString(bomResults.regionName, M5Dial.Display.width() / 2, 30);
-    M5Dial.Display.setFont(&fonts::DejaVu12);
-    M5Dial.Display.setTextSize(1);
-    M5Dial.Display.setTextColor(GREEN);
-    int h_center = M5Dial.Display.width() / 2;
-    String date =
-        String(bomResults.periods[selector].dayOfWeek) + String(" ") + String(bomResults.periods[selector].dateString);
-    //Serial.printf("Date string %s", date.c_str());
-    M5Dial.Display.drawString(date, h_center, DISPLAY_PERIOD_NUM_LINE);
-    forecastScroll.UpdateText(String(bomResults.periods[selector].forecast));
-    forecastScroll.StartScroll();
-  }
-
-  forecastScroll.Update();
-  // 2. Read Screen/Logo Wake Button Actions
-  if (M5Dial.BtnA.wasPressed()) {
-    M5Dial.Speaker.tone(2000, 100);
-    M5Dial.Encoder.readAndReset();  // Reset encoder count back to 0
+  switch (currentState) {
+    case AppState::REGION_SELECTION:
+      regionSelector.Update();
+      if (regionSelector.SelectionMade()) {
+        selectedRegion = String(regionSelector.SelectedRegion());
+        currentState = AppState::WEATHER_DISPLAY;
+        LocalBomParse localBomParse(bomResults);
+        localBomParse.fetchXML(selectedRegion);
+        localBomParse.parseXML();
+        strlcpy(bomResults.regionName, selectedRegion.c_str(), sizeof(bomResults.regionName));
+        weatherDisplay.Start();
+      }
+      break;
+    case AppState::WEATHER_DISPLAY:
+      weatherDisplay.Update();
+      if (weatherDisplay.WasCancelled()) {
+        currentState = AppState::REGION_SELECTION;
+        regionSelector.Start();
+      }
   }
 }
 

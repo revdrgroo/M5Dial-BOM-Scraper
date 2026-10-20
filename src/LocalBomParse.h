@@ -1,5 +1,6 @@
-#ifndef LOCALBOMPARSE_H
-#define LOCALBOMPARSE_H
+#pragma once
+#ifndef _LOCALBOMPARSE_H_
+#define _LOCALBOMPARSE_H_
 
 #include <BomParse.h>
 
@@ -12,7 +13,7 @@ class LocalBomParse {
   BomParseResult& result;
 
   LocalBomParse(BomParseResult& result) : result(result) {};
-  void fetchXML();
+  void fetchXML(String& region);
   void parseXML();
 };
 

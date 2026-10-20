@@ -1,5 +1,6 @@
-#ifndef BOMPARSE_H
-#define BOMPARSE_H
+#pragma once
+#ifndef _BOMPARSE_H_
+#define _BOMPARSE_H_
 
 #include <SPIFFS.h>
 #include "WiFi.h"
@@ -33,6 +34,7 @@ struct BomParseResult {
   int periodCount;
   bool complete;
 };
+
 
 class BomParse {
     private:

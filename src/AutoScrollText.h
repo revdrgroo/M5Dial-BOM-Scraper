@@ -1,3 +1,6 @@
+#pragma once
+#ifndef _AUTO_SCROLL_TEXT_H_
+#define _AUTO_SCROLL_TEXT_H_
 #include <M5Dial.h>
 #include <iostream>
 #include <sstream>
@@ -31,3 +34,4 @@ class AutoScrollText {
   void CreateSprite(int verticalOffset);
   void DisplaySprite();
 };
+#endif

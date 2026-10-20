@@ -3,7 +3,7 @@
 void AutoScrollText::Init() {
   scrollSprite = new LGFX_Sprite(&M5Dial.Display);
   scrollSprite->createSprite(TEXT_SPRITE_WIDTH, TEXT_SPRITE_HEIGHT);
-  textYPos = 60;
+  textYPos = 80;
 }
 
 void AutoScrollText::UpdateText(String newText) {
@@ -79,6 +79,7 @@ void AutoScrollText::CreateSprite(int verticalOffset) {
     } else {
       line += w;
       line += " ";
+
       textWidth += nextWidth;
     }
   }

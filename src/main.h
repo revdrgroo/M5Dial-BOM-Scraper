@@ -1,5 +1,6 @@
-#ifndef MAIN_H
-#define MAIN_H
+#pragma once
+#ifndef _MAIN_H_
+#define _MAIN_H_
 
 #include <LittleFS.h>
 #include <M5Dial.h>

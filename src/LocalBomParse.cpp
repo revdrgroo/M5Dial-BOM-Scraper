@@ -25,15 +25,19 @@
 
 #define COMPARE(field, value) (((field##Len == (sizeof(value) - 1)) && (strncasecmp(field, value, field##Len) == 0)))
 
-void LocalBomParse::fetchXML() {
+void LocalBomParse::fetchXML(String& region) {
   Serial.printf("Local IP: %s\n", WiFi.localIP().toString().c_str());
   Serial.printf("WIFI Gateway: %s\n", WiFi.gatewayIP().toString().c_str());
 
   String serverPath = String("http://") + HTTP_SERVER_ADDRESS + ":" + String(HTTP_SERVER_PORT);
   HTTPClient http;
-  String request = String("/forecast?region=bowral&refresh=false");
+  String request = String("/forecast?region=");
+  String lowerRegion(region);
+  lowerRegion.toLowerCase();
+  request.concat(lowerRegion);
+  request.concat("&refresh=false");
 
-  Serial.printf("request >>>%s<<<", request.c_str());
+  Serial.printf("request >>>%s<<<\n", request.c_str());
   // http.begin(request.c_str());
   http.begin(String(HTTP_SERVER_ADDRESS), HTTP_SERVER_PORT, request);
 
