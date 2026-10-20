@@ -8,24 +8,24 @@
 #define XML_PARSE_LIMIT 50000
 
 #define ROOT_TAG "/week_forecast"
-#define TIMECODE_TAG ROOT_TAG"/timecode"
-#define FORECAST_PERIOD_TAG ROOT_TAG"/forecast_period"
-#define FORECAST_ICON_TAG FORECAST_PERIOD_TAG"/forecast_icon_code"
-#define PRECIPITATION_RANGE_TAG FORECAST_PERIOD_TAG"/precipitation_range"
-#define TEMPERATURE_MIN_TAG FORECAST_PERIOD_TAG"/air_temperature_minimum"
-#define TEMPERATURE_MAX_TAG FORECAST_PERIOD_TAG"/air_temperature_maximum"
-#define LONGFORECAST_TAG FORECAST_PERIOD_TAG"/forecast"
-#define PRECIS_TAG FORECAST_PERIOD_TAG"/precis"
-#define PRECIP_PROBABILITY_TAG FORECAST_PERIOD_TAG"/probability_of_precipitation"
-#define PRECIPITATION_RANGE_ATTR FORECAST_PERIOD_TAG"precipitation_range"
-#define UV_ALERT_TAG FORECAST_PERIOD_TAG"/uv_alert"
-#define FIRE_DANGER_TAG FORECAST_PERIOD_TAG"/fire_danger"
-#define DATE_STRING_TAG FORECAST_PERIOD_TAG"/date-string"
-#define DAY_OF_WEEK_TAG FORECAST_PERIOD_TAG"/day-of-week-short"
+#define TIMECODE_TAG ROOT_TAG "/timecode"
+#define FORECAST_PERIOD_TAG ROOT_TAG "/forecast_period"
+#define FORECAST_ICON_TAG FORECAST_PERIOD_TAG "/forecast_icon_code"
+#define PRECIPITATION_RANGE_TAG FORECAST_PERIOD_TAG "/precipitation_range"
+#define TEMPERATURE_MIN_TAG FORECAST_PERIOD_TAG "/air_temperature_minimum"
+#define TEMPERATURE_MAX_TAG FORECAST_PERIOD_TAG "/air_temperature_maximum"
+#define LONGFORECAST_TAG FORECAST_PERIOD_TAG "/forecast"
+#define PRECIS_TAG FORECAST_PERIOD_TAG "/precis"
+#define PRECIP_PROBABILITY_TAG FORECAST_PERIOD_TAG "/probability_of_precipitation"
+#define PRECIPITATION_RANGE_ATTR FORECAST_PERIOD_TAG "precipitation_range"
+#define UV_ALERT_TAG FORECAST_PERIOD_TAG "/uv_alert"
+#define FIRE_DANGER_TAG FORECAST_PERIOD_TAG "/fire_danger"
+#define DATE_STRING_TAG FORECAST_PERIOD_TAG "/date-string"
+#define DAY_OF_WEEK_TAG FORECAST_PERIOD_TAG "/day-of-week-short"
 
 #define COMPARE(field, value) (((field##Len == (sizeof(value) - 1)) && (strncasecmp(field, value, field##Len) == 0)))
 
-void LocalBomParse::fetchXML(String& region) {
+void LocalBomParse::fetchXML(String& region, bool refresh) {
   Serial.printf("Local IP: %s\n", WiFi.localIP().toString().c_str());
   Serial.printf("WIFI Gateway: %s\n", WiFi.gatewayIP().toString().c_str());
 
@@ -35,7 +35,8 @@ void LocalBomParse::fetchXML(String& region) {
   String lowerRegion(region);
   lowerRegion.toLowerCase();
   request.concat(lowerRegion);
-  request.concat("&refresh=false");
+  request.concat("&refresh=");
+  request.concat(refresh ? "true" : "false");
 
   Serial.printf("request >>>%s<<<\n", request.c_str());
   // http.begin(request.c_str());
@@ -85,7 +86,7 @@ static const char* statusPrintable(uint8_t status) {
 
 static void LocalBomParse_XML_callback(uint8_t status, char* tagName, uint16_t tagNameLen, char* text, uint16_t textLen,
                                        void* userData) {
-  //Serial.printf("HTTP XML callback: status=%s, tagName=%.*s, text=%.*s\n", statusPrintable(status), tagNameLen, tagName, textLen, text);                                
+  //Serial.printf("HTTP XML callback: status=%s, tagName=%.*s, text=%.*s\n", statusPrintable(status), tagNameLen, tagName, textLen, text);
   LocalBomParse* bp = (LocalBomParse*)userData;
 
   if (status == STATUS_START_TAG) {
@@ -100,12 +101,11 @@ static void LocalBomParse_XML_callback(uint8_t status, char* tagName, uint16_t t
     if (COMPARE(tagName, TIMECODE_TAG)) {
       Serial.printf("Timecode: %.*s\n", textLen, text);
     }
-    BomParsePeriod &period = bp->result.periods[bp->periodIndex];
-   
+    BomParsePeriod& period = bp->result.periods[bp->periodIndex];
+
     if (COMPARE(tagName, LONGFORECAST_TAG)) {
       Serial.printf("Forecast: %.*s\n", textLen, text);
-      strlcpy(period.forecast, text,
-              sizeof(period.forecast));
+      strlcpy(period.forecast, text, sizeof(period.forecast));
     }
     if (COMPARE(tagName, PRECIS_TAG)) {
       Serial.printf("Precis: %.*s\n", textLen, text);
@@ -113,13 +113,11 @@ static void LocalBomParse_XML_callback(uint8_t status, char* tagName, uint16_t t
     }
     if (COMPARE(tagName, PRECIP_PROBABILITY_TAG)) {
       Serial.printf("Probability of precipitation: %.*s\n", textLen, text);
-      strlcpy(period.precipProbability, text,
-              sizeof(period.precipProbability));
+      strlcpy(period.precipProbability, text, sizeof(period.precipProbability));
     }
     if (COMPARE(tagName, PRECIPITATION_RANGE_TAG)) {
       Serial.printf("Precipitation range: %.*s\n", textLen, text);
-      strlcpy(period.precipRange, text,
-              sizeof(period.precipRange));
+      strlcpy(period.precipRange, text, sizeof(period.precipRange));
     }
     if (COMPARE(tagName, TEMPERATURE_MIN_TAG)) {
       Serial.printf("Min temperature: %.*s\n", textLen, text);
