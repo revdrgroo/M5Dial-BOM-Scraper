@@ -24,7 +24,9 @@
 #include "TinyXML.h"
 #include "WiFi.h"
 
+#include <chrono>
 #include <iostream>
+#include <map>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -43,6 +45,8 @@
 #define FORECAST_SPRITE_WIDTH 200
 #define FORECAST_SPRITE_HEIGHT 100
 
+#define REGION_REFRESH_DURATION_SECONDS 300
+
 long oldPosition = -999;
 // static BomUI ui;
 // static BomParseResult httpBomResult;
@@ -60,6 +64,8 @@ static AppState currentState = AppState::REGION_SELECTION;
 static String selectedRegion = String("");
 static RegionSelector regionSelector;
 static WeatherDisplay weatherDisplay(bomResults);
+
+static std::map<String, std::chrono::steady_clock::time_point> RefreshTimes;
 
 void display_file_system_information() {
   Serial.println("File system:");
@@ -211,15 +217,38 @@ void setup() {
   weatherDisplay.Init();
 }
 
+bool decideRefreshParamForRegion(String& region) {
+  if (RefreshTimes.count(region) > 0) {
+    using Clock = std::chrono::steady_clock;
+    using Seconds = std::chrono::seconds;
+    Clock::time_point now = Clock::now();
+    Clock::time_point then = RefreshTimes[region];
+    Seconds ellapsed = std::chrono::duration_cast<Seconds>(now - then);
+    if (ellapsed.count() > REGION_REFRESH_DURATION_SECONDS) {
+      Serial.printf("Refresh time expired for region %s\n", region.c_str());
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    return true;
+  }
+}
+
 void loop() {
   switch (currentState) {
     case AppState::REGION_SELECTION:
       regionSelector.Update();
       if (regionSelector.SelectionMade()) {
         selectedRegion = String(regionSelector.SelectedRegion());
+        bool refresh = decideRefreshParamForRegion(selectedRegion);
+        Serial.printf("Region %s, refresh = %s", selectedRegion.c_str(), refresh ? "true" : "false");
+        if (refresh) {
+          RefreshTimes[selectedRegion] = std::chrono::steady_clock::now();
+        }
         currentState = AppState::WEATHER_DISPLAY;
         LocalBomParse localBomParse(bomResults);
-        localBomParse.fetchXML(selectedRegion);
+        localBomParse.fetchXML(selectedRegion, refresh);
         localBomParse.parseXML();
         strlcpy(bomResults.regionName, selectedRegion.c_str(), sizeof(bomResults.regionName));
         weatherDisplay.Start();

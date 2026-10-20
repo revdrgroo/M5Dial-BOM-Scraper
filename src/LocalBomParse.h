@@ -13,7 +13,7 @@ class LocalBomParse {
   BomParseResult& result;
 
   LocalBomParse(BomParseResult& result) : result(result) {};
-  void fetchXML(String& region);
+  void fetchXML(String& region, bool refresh = false);
   void parseXML();
 };
 
